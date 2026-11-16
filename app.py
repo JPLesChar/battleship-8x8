@@ -6,9 +6,10 @@ st.set_page_config(
     layout="wide"
 )
 
-# -------------------------
+
+# =====================================
 # FUNCTIONS
-# -------------------------
+# =====================================
 
 def generate_enemy_fleet():
     ships = [4, 3, 3, 2]
@@ -56,18 +57,22 @@ def generate_enemy_fleet():
     return fleet
 
 
-# -------------------------
+# =====================================
 # SESSION STATE
-# -------------------------
+# =====================================
 
 if "player_ships" not in st.session_state:
     st.session_state.player_ships = []
 
+if "enemy_ships" not in st.session_state:
+    st.session_state.enemy_ships = generate_enemy_fleet()
+
+if "player_shots" not in st.session_state:
+    st.session_state.player_shots = {}
+
 if "ship_index" not in st.session_state:
     st.session_state.ship_index = 0
 
-if "enemy_ships" not in st.session_state:
-    st.session_state.enemy_ships = generate_enemy_fleet()
 
 ships_to_place = [
     ("Battleship", 4),
@@ -76,32 +81,38 @@ ships_to_place = [
     ("Destroyer", 2)
 ]
 
-# -------------------------
-# RESET GAME
-# -------------------------
+letters = ["A", "B", "C", "D", "E", "F", "G", "H"]
+
+
+# =====================================
+# NEW GAME
+# =====================================
 
 if st.button("🔄 New Game"):
 
     st.session_state.player_ships = []
-    st.session_state.ship_index = 0
     st.session_state.enemy_ships = generate_enemy_fleet()
+    st.session_state.player_shots = {}
+    st.session_state.ship_index = 0
 
     st.rerun()
 
-# -------------------------
+
+# =====================================
 # TITLE
-# -------------------------
+# =====================================
 
 st.title("🚢 Battleship Classic 8x8")
+
+
+# =====================================
+# SHIP PLACEMENT
+# =====================================
 
 orientation = st.radio(
     "Orientation",
     ["Horizontal", "Vertical"]
 )
-
-# -------------------------
-# STATUS
-# -------------------------
 
 if st.session_state.ship_index < len(ships_to_place):
 
@@ -115,21 +126,32 @@ if st.session_state.ship_index < len(ships_to_place):
 
 else:
 
-    st.success(
-        "✅ Fleet deployment complete!"
-    )
+    st.success("✅ Fleet deployed. Fire at will!")
 
-# -------------------------
+
+# =====================================
+# COUNTER
+# =====================================
+
+enemy_hits = sum(
+    1
+    for result in st.session_state.player_shots.values()
+    if result == "hit"
+)
+
+st.write(f"Enemy ship cells destroyed: {enemy_hits}/12")
+
+
+# =====================================
 # BOARDS
-# -------------------------
+# =====================================
 
 left_board, right_board = st.columns(2)
 
-letters = ["A", "B", "C", "D", "E", "F", "G", "H"]
 
-# -------------------------
+# =====================================
 # PLAYER BOARD
-# -------------------------
+# =====================================
 
 with left_board:
 
@@ -140,7 +162,9 @@ with left_board:
     header[0].write("")
 
     for i in range(8):
-        header[i + 1].write(f"**{letters[i]}**")
+        header[i + 1].write(
+            f"**{letters[i]}**"
+        )
 
     for row in range(8):
 
@@ -152,24 +176,26 @@ with left_board:
 
             coord = (row, col)
 
-            symbol = (
-                "🚢"
-                if coord in st.session_state.player_ships
-                else "⬜"
-            )
+            if coord in st.session_state.player_ships:
+                symbol = "🚢"
+            else:
+                symbol = "⬜"
 
             if cols[col + 1].button(
                 symbol,
                 key=f"player_{row}_{col}"
             ):
 
-                if st.session_state.ship_index < len(
-                    ships_to_place
+                if (
+                    st.session_state.ship_index
+                    < len(ships_to_place)
                 ):
 
-                    _, ship_length = ships_to_place[
-                        st.session_state.ship_index
-                    ]
+                    _, ship_length = (
+                        ships_to_place[
+                            st.session_state.ship_index
+                        ]
+                    )
 
                     new_ship = []
 
@@ -199,7 +225,8 @@ with left_board:
                             valid = False
 
                     if (
-                        len(new_ship) == ship_length
+                        len(new_ship)
+                        == ship_length
                         and valid
                     ):
 
@@ -211,9 +238,10 @@ with left_board:
 
                         st.rerun()
 
-# -------------------------
+
+# =====================================
 # ENEMY BOARD
-# -------------------------
+# =====================================
 
 with right_board:
 
@@ -224,7 +252,9 @@ with right_board:
     header[0].write("")
 
     for i in range(8):
-        header[i + 1].write(f"**{letters[i]}**")
+        header[i + 1].write(
+            f"**{letters[i]}**"
+        )
 
     for row in range(8):
 
@@ -234,7 +264,69 @@ with right_board:
 
         for col in range(8):
 
-            cols[col + 1].button(
-                "⬜",
+            coord = (row, col)
+
+            if coord in st.session_state.player_shots:
+
+                if (
+                    st.session_state.player_shots[coord]
+                    == "hit"
+                ):
+                    symbol = "💥"
+                else:
+                    symbol = "❌"
+
+            else:
+
+                symbol = "⬜"
+
+            if cols[col + 1].button(
+                symbol,
                 key=f"enemy_{row}_{col}"
-            )
+            ):
+
+                if (
+                    st.session_state.ship_index
+                    == len(ships_to_place)
+                ):
+
+                    if (
+                        coord
+                        not in st.session_state.player_shots
+                    ):
+
+                        if (
+                            coord
+                            in st.session_state.enemy_ships
+                        ):
+
+                            st.session_state.player_shots[
+                                coord
+                            ] = "hit"
+
+                        else:
+
+                            st.session_state.player_shots[
+                                coord
+                            ] = "miss"
+
+                        st.rerun()
+
+
+# =====================================
+# VICTORY
+# =====================================
+
+enemy_hits = sum(
+    1
+    for result in st.session_state.player_shots.values()
+    if result == "hit"
+)
+
+if enemy_hits == 12:
+
+    st.balloons()
+
+    st.success(
+        "🏆 Congratulations! You sank the enemy fleet!"
+    )
