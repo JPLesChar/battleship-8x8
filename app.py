@@ -6,16 +6,24 @@ st.set_page_config(
     layout="wide"
 )
 
-
 # =====================================
 # FUNCTIONS
 # =====================================
 
+def can_place_ship(ship, occupied):
+    for row, col in ship:
+        for r in range(row - 1, row + 2):
+            for c in range(col - 1, col + 2):
+                if (r, c) in occupied:
+                    return False
+    return True
+
+
 def generate_enemy_fleet():
-    ships = [4, 3, 3, 2]
+    ship_lengths = [4, 3, 3, 2]
     fleet = []
 
-    for ship_length in ships:
+    for length in ship_lengths:
 
         placed = False
 
@@ -28,29 +36,27 @@ def generate_enemy_fleet():
             row = random.randint(0, 7)
             col = random.randint(0, 7)
 
-            ship = []
-
             if orientation == "Horizontal":
 
-                if col + ship_length <= 8:
+                if col + length > 8:
+                    continue
 
-                    ship = [
-                        (row, col + i)
-                        for i in range(ship_length)
-                    ]
+                ship = [
+                    (row, col + i)
+                    for i in range(length)
+                ]
 
             else:
 
-                if row + ship_length <= 8:
+                if row + length > 8:
+                    continue
 
-                    ship = [
-                        (row + i, col)
-                        for i in range(ship_length)
-                    ]
+                ship = [
+                    (row + i, col)
+                    for i in range(length)
+                ]
 
-            if ship and not any(
-                cell in fleet for cell in ship
-            ):
+            if can_place_ship(ship, fleet):
                 fleet.extend(ship)
                 placed = True
 
@@ -73,7 +79,6 @@ if "player_shots" not in st.session_state:
 if "ship_index" not in st.session_state:
     st.session_state.ship_index = 0
 
-
 ships_to_place = [
     ("Battleship", 4),
     ("Cruiser", 3),
@@ -82,7 +87,6 @@ ships_to_place = [
 ]
 
 letters = ["A", "B", "C", "D", "E", "F", "G", "H"]
-
 
 # =====================================
 # NEW GAME
@@ -97,22 +101,20 @@ if st.button("🔄 New Game"):
 
     st.rerun()
 
-
 # =====================================
 # TITLE
 # =====================================
 
 st.title("🚢 Battleship Classic 8x8")
 
-
-# =====================================
-# SHIP PLACEMENT
-# =====================================
-
 orientation = st.radio(
     "Orientation",
     ["Horizontal", "Vertical"]
 )
+
+# =====================================
+# STATUS
+# =====================================
 
 if st.session_state.ship_index < len(ships_to_place):
 
@@ -126,12 +128,9 @@ if st.session_state.ship_index < len(ships_to_place):
 
 else:
 
-    st.success("✅ Fleet deployed. Fire at will!")
-
-
-# =====================================
-# COUNTER
-# =====================================
+    st.success(
+        "✅ Fleet deployed. Fire at will!"
+    )
 
 enemy_hits = sum(
     1
@@ -139,15 +138,15 @@ enemy_hits = sum(
     if result == "hit"
 )
 
-st.write(f"Enemy ship cells destroyed: {enemy_hits}/12")
-
+st.write(
+    f"Enemy ship cells destroyed: {enemy_hits}/12"
+)
 
 # =====================================
 # BOARDS
 # =====================================
 
 left_board, right_board = st.columns(2)
-
 
 # =====================================
 # PLAYER BOARD
@@ -191,43 +190,33 @@ with left_board:
                     < len(ships_to_place)
                 ):
 
-                    _, ship_length = (
-                        ships_to_place[
-                            st.session_state.ship_index
-                        ]
-                    )
-
-                    new_ship = []
+                    _, ship_length = ships_to_place[
+                        st.session_state.ship_index
+                    ]
 
                     if orientation == "Horizontal":
 
-                        if col + ship_length <= 8:
+                        if col + ship_length > 8:
+                            continue
 
-                            new_ship = [
-                                (row, col + i)
-                                for i in range(ship_length)
-                            ]
+                        new_ship = [
+                            (row, col + i)
+                            for i in range(ship_length)
+                        ]
 
                     else:
 
-                        if row + ship_length <= 8:
+                        if row + ship_length > 8:
+                            continue
 
-                            new_ship = [
-                                (row + i, col)
-                                for i in range(ship_length)
-                            ]
+                        new_ship = [
+                            (row + i, col)
+                            for i in range(ship_length)
+                        ]
 
-                    valid = True
-
-                    for square in new_ship:
-
-                        if square in st.session_state.player_ships:
-                            valid = False
-
-                    if (
-                        len(new_ship)
-                        == ship_length
-                        and valid
+                    if can_place_ship(
+                        new_ship,
+                        st.session_state.player_ships
                     ):
 
                         st.session_state.player_ships.extend(
@@ -237,7 +226,6 @@ with left_board:
                         st.session_state.ship_index += 1
 
                         st.rerun()
-
 
 # =====================================
 # ENEMY BOARD
@@ -311,7 +299,6 @@ with right_board:
                             ] = "miss"
 
                         st.rerun()
-
 
 # =====================================
 # VICTORY
