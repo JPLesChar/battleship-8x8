@@ -1,426 +1,211 @@
-import streamlit as st
 import random
+import streamlit as st
 
-st.set_page_config(
-page_title="Battleship 8x8",
-layout="wide"
-)
+st.set_page_config(page_title="Battleship 8x8", layout="wide")
 
-# =====================================
-# FUNCTIONS
-# =====================================
+SHIP_NAMES = ["Battleship", "Cruiser", "Submarine", "Destroyer"]
+SHIP_LENGTHS = [4, 3, 3, 2]
+LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"]
+
 
 def can_place_ship(ship, occupied):
-for row, col in ship:
-for r in range(row - 1, row + 2):
-for c in range(col - 1, col + 2):
-if (r, c) in occupied:
-return False
-return True
+    for row, col in ship:
+        for r in range(max(0, row - 1), min(8, row + 2)):
+            for c in range(max(0, col - 1), min(8, col + 2)):
+                if (r, c) in occupied:
+                    return False
+    return True
 
 
-def generate_enemy_fleet():
 def generate_fleet():
-ship_lengths = [4, 3, 3, 2]
-fleet = []
+    fleet = []
 
-for length in ship_lengths:
+    for ship_length in SHIP_LENGTHS:
+        placed = False
 
-placed = False
+        while not placed:
+            orientation = random.choice(["Horizontal", "Vertical"])
+            row = random.randint(0, 7)
+            col = random.randint(0, 7)
 
-while not placed:
+            if orientation == "Horizontal":
+                if col + ship_length > 8:
+                    continue
+                ship = [(row, col + i) for i in range(ship_length)]
+            else:
+                if row + ship_length > 8:
+                    continue
+                ship = [(row + i, col) for i in range(ship_length)]
 
-orientation = random.choice(
-["Horizontal", "Vertical"]
-)
+            if can_place_ship(ship, fleet):
+                fleet.extend(ship)
+                placed = True
 
-row = random.randint(0, 7)
-col = random.randint(0, 7)
-
-if orientation == "Horizontal":
-
-if col + length > 8:
-continue
-
-ship = [
-(row, col + i)
-for i in range(length)
-]
-
-else:
-
-if row + length > 8:
-continue
-
-ship = [
-(row + i, col)
-for i in range(length)
-]
-
-if can_place_ship(ship, fleet):
-fleet.extend(ship)
-placed = True
-
-return fleet
+    return fleet
 
 
-# =====================================
-# SESSION STATE
-# =====================================
+def reset_game():
+    st.session_state.player_ships = []
+    st.session_state.enemy_ships = generate_fleet()
+    st.session_state.player_shots = {}
+    st.session_state.computer_shots = {}
+    st.session_state.ship_index = 0
+    st.session_state.available_shots = [
+        (row, col) for row in range(8) for col in range(8)
+    ]
+    st.session_state.game_over = False
+
 
 if "player_ships" not in st.session_state:
-st.session_state.player_ships = []
+    reset_game()
 
 if "enemy_ships" not in st.session_state:
-    st.session_state.enemy_ships = generate_enemy_fleet()
     st.session_state.enemy_ships = generate_fleet()
 
 if "player_shots" not in st.session_state:
-st.session_state.player_shots = {}
+    st.session_state.player_shots = {}
 
 if "computer_shots" not in st.session_state:
     st.session_state.computer_shots = {}
 
 if "ship_index" not in st.session_state:
-st.session_state.ship_index = 0
+    st.session_state.ship_index = 0
 
 if "available_shots" not in st.session_state:
     st.session_state.available_shots = [
-        (r, c)
-        for r in range(8)
-        for c in range(8)
+        (row, col) for row in range(8) for col in range(8)
     ]
 
-ships_to_place = [
-("Battleship", 4),
-("Cruiser", 3),
-("Submarine", 3),
-("Destroyer", 2)
-]
+if "game_over" not in st.session_state:
+    st.session_state.game_over = False
 
-letters = ["A", "B", "C", "D", "E", "F", "G", "H"]
-
-# =====================================
-# NEW GAME
-# =====================================
 
 if st.button("🔄 New Game"):
-
-st.session_state.player_ships = []
-    st.session_state.enemy_ships = generate_enemy_fleet()
-    st.session_state.enemy_ships = generate_fleet()
-st.session_state.player_shots = {}
-    st.session_state.computer_shots = {}
-st.session_state.ship_index = 0
-
-    st.session_state.available_shots = [
-        (r, c)
-        for r in range(8)
-        for c in range(8)
-    ]
-
-st.rerun()
-
-# =====================================
-# TITLE
-# =====================================
+    reset_game()
+    st.rerun()
 
 st.title("🚢 Battleship Classic 8x8")
+orientation = st.radio("Orientation", ["Horizontal", "Vertical"], key="orientation")
 
-orientation = st.radio(
-"Orientation",
-["Horizontal", "Vertical"]
-)
-
-# =====================================
-# STATUS
-# =====================================
-
-if st.session_state.ship_index < len(ships_to_place):
-
-ship_name, ship_length = ships_to_place[
-st.session_state.ship_index
-]
-
-st.info(
-f"Place your {ship_name} ({ship_length} cells)"
-)
-
+if st.session_state.ship_index < len(SHIP_NAMES):
+    ship_name = SHIP_NAMES[st.session_state.ship_index]
+    ship_length = SHIP_LENGTHS[st.session_state.ship_index]
+    st.info(f"Place your {ship_name} ({ship_length} cells)")
 else:
+    st.success("✅ Fleet deployed. Battle started!")
 
-st.success(
-        "✅ Fleet deployed. Fire at will!"
-        "✅ Fleet deployed. Battle started!"
-)
 
 enemy_hits = sum(
-1
-for result in st.session_state.player_shots.values()
-if result == "hit"
+    1 for result in st.session_state.player_shots.values() if result == "hit"
 )
-
 player_hits = sum(
-    1
-    for result in st.session_state.computer_shots.values()
-    if result == "hit"
+    1 for result in st.session_state.computer_shots.values() if result == "hit"
 )
 
-st.write(
-    f"Enemy ship cells destroyed: {enemy_hits}/12"
-    f"Your hits: {enemy_hits}/12 | "
-    f"Computer hits: {player_hits}/12"
-)
+st.session_state.game_over = enemy_hits >= 12 or player_hits >= 12
+st.write(f"Your hits: {enemy_hits}/12 | Computer hits: {player_hits}/12")
 
-# =====================================
-# BOARDS
-# =====================================
+if enemy_hits == 12:
+    st.balloons()
+    st.success("🏆 Victory! You sank the enemy fleet!")
+
+if player_hits == 12:
+    st.error("💀 Defeat! The computer sank your fleet!")
 
 left_board, right_board = st.columns(2)
 
-# =====================================
-# PLAYER BOARD
-# =====================================
-
 with left_board:
+    st.subheader("🚢 Your Fleet")
 
-st.subheader("🚢 Your Fleet")
+    header = st.columns(9)
+    header[0].write("")
+    for i, letter in enumerate(LETTERS):
+        header[i + 1].write(f"**{letter}**")
 
-header = st.columns(9)
+    for row in range(8):
+        cols = st.columns(9)
+        cols[0].write(f"**{row + 1}**")
 
-header[0].write("")
+        for col in range(8):
+            coord = (row, col)
 
-for i in range(8):
-        header[i + 1].write(
-            f"**{letters[i]}**"
-        )
-        header[i + 1].write(f"**{letters[i]}**")
-
-for row in range(8):
-
-cols = st.columns(9)
-
-cols[0].write(f"**{row + 1}**")
-
-for col in range(8):
-
-coord = (row, col)
-
-            if coord in st.session_state.player_ships:
-                symbol = "🚢"
             if coord in st.session_state.computer_shots:
-
-                if (
-                    st.session_state
-                    .computer_shots[coord]
-                    == "hit"
-                ):
-                    symbol = "💥"
-
+                if coord in st.session_state.player_ships:
+                    symbol = "💥" if st.session_state.computer_shots[coord] == "hit" else "🚢"
                 else:
-
-                    if coord in st.session_state.player_ships:
-                        symbol = "🚢"
-                    else:
-                        symbol = "❌"
-
-else:
+                    symbol = "❌"
+            elif coord in st.session_state.player_ships:
+                symbol = "🚢"
+            else:
                 symbol = "⬜"
 
-                if coord in st.session_state.player_ships:
-                    symbol = "🚢"
-                else:
-                    symbol = "⬜"
-
-if cols[col + 1].button(
-symbol,
-key=f"player_{row}_{col}"
-):
-
-if (
-st.session_state.ship_index
-< len(ships_to_place)
-):
-
-_, ship_length = ships_to_place[
-st.session_state.ship_index
-]
-
-if orientation == "Horizontal":
-
-if col + ship_length > 8:
-continue
-
-new_ship = [
-(row, col + i)
-for i in range(ship_length)
-]
-
-else:
-
-if row + ship_length > 8:
-continue
-
-new_ship = [
-(row + i, col)
-for i in range(ship_length)
-]
-
-if can_place_ship(
-new_ship,
-st.session_state.player_ships
-):
-
-st.session_state.player_ships.extend(
-new_ship
-)
-
-st.session_state.ship_index += 1
-
-st.rerun()
-
-# =====================================
-# ENEMY BOARD
-# =====================================
+            if cols[col + 1].button(
+                symbol,
+                key=f"player_{row}_{col}",
+                disabled=(st.session_state.ship_index >= len(SHIP_NAMES) or st.session_state.game_over),
+            ):
+                if st.session_state.ship_index < len(SHIP_NAMES):
+                    ship_length = SHIP_LENGTHS[st.session_state.ship_index]
+                    if orientation == "Horizontal":
+                        if col + ship_length > 8:
+                            st.warning("This ship does not fit horizontally.")
+                        else:
+                            new_ship = [(row, col + i) for i in range(ship_length)]
+                            if can_place_ship(new_ship, st.session_state.player_ships):
+                                st.session_state.player_ships.extend(new_ship)
+                                st.session_state.ship_index += 1
+                                st.rerun()
+                            else:
+                                st.warning("Ship placement overlaps or touches another ship.")
+                    else:
+                        if row + ship_length > 8:
+                            st.warning("This ship does not fit vertically.")
+                        else:
+                            new_ship = [(row + i, col) for i in range(ship_length)]
+                            if can_place_ship(new_ship, st.session_state.player_ships):
+                                st.session_state.player_ships.extend(new_ship)
+                                st.session_state.ship_index += 1
+                                st.rerun()
+                            else:
+                                st.warning("Ship placement overlaps or touches another ship.")
 
 with right_board:
+    st.subheader("🎯 Enemy Waters")
 
-st.subheader("🎯 Enemy Waters")
+    header = st.columns(9)
+    header[0].write("")
+    for i, letter in enumerate(LETTERS):
+        header[i + 1].write(f"**{letter}**")
 
-header = st.columns(9)
+    for row in range(8):
+        cols = st.columns(9)
+        cols[0].write(f"**{row + 1}**")
 
-header[0].write("")
+        for col in range(8):
+            coord = (row, col)
 
-for i in range(8):
-        header[i + 1].write(
-            f"**{letters[i]}**"
-        )
-        header[i + 1].write(f"**{letters[i]}**")
+            if coord in st.session_state.player_shots:
+                symbol = "💥" if st.session_state.player_shots[coord] == "hit" else "❌"
+            else:
+                symbol = "⬜"
 
-for row in range(8):
+            if cols[col + 1].button(
+                symbol,
+                key=f"enemy_{row}_{col}",
+                disabled=(st.session_state.ship_index < len(SHIP_NAMES) or st.session_state.game_over),
+            ):
+                if coord not in st.session_state.player_shots:
+                    if coord in st.session_state.enemy_ships:
+                        st.session_state.player_shots[coord] = "hit"
+                    else:
+                        st.session_state.player_shots[coord] = "miss"
 
-cols = st.columns(9)
-
-cols[0].write(f"**{row + 1}**")
-
-for col in range(8):
-
-coord = (row, col)
-
-if coord in st.session_state.player_shots:
-
-if (
-                    st.session_state.player_shots[coord]
-                    st.session_state
-                    .player_shots[coord]
-== "hit"
-):
-symbol = "💥"
-else:
-symbol = "❌"
-
-else:
-
-symbol = "⬜"
-
-if cols[col + 1].button(
-symbol,
-key=f"enemy_{row}_{col}"
-):
-
-                if (
-                deployment_finished = (
-st.session_state.ship_index
-== len(ships_to_place)
-                )
-
-                game_over = (
-                    enemy_hits == 12
-                    or player_hits == 12
-                )
-
-                if (
-                    deployment_finished
-                    and not game_over
-):
-
-if (
-coord
-not in st.session_state.player_shots
-):
-
-                        # PLAYER SHOT
-
-if (
-coord
-in st.session_state.enemy_ships
-):
-
-st.session_state.player_shots[
-coord
-] = "hit"
-
-else:
-
-st.session_state.player_shots[
-coord
-] = "miss"
-
-                        # COMPUTER SHOT
-
-                        computer_target = random.choice(
-                            st.session_state
-                            .available_shots
-                        )
-
-                        st.session_state.available_shots.remove(
-                            computer_target
-                        )
-
-                        if (
-                            computer_target
-                            in st.session_state.player_ships
-                        ):
-
-                            st.session_state.computer_shots[
-                                computer_target
-                            ] = "hit"
-
+                    if st.session_state.available_shots:
+                        computer_target = random.choice(st.session_state.available_shots)
+                        st.session_state.available_shots.remove(computer_target)
+                        if computer_target in st.session_state.player_ships:
+                            st.session_state.computer_shots[computer_target] = "hit"
                         else:
+                            st.session_state.computer_shots[computer_target] = "miss"
 
-                            st.session_state.computer_shots[
-                                computer_target
-                            ] = "miss"
-
-st.rerun()
-
-# =====================================
-# VICTORY
-# VICTORY CONDITIONS
-# =====================================
-
-enemy_hits = sum(
-1
-for result in st.session_state.player_shots.values()
-if result == "hit"
-)
-
-player_hits = sum(
-    1
-    for result in st.session_state.computer_shots.values()
-    if result == "hit"
-)
-
-if enemy_hits == 12:
-
-st.balloons()
-
-st.success(
-        "🏆 Congratulations! You sank the enemy fleet!"
-        "🏆 Victory! You sank the enemy fleet!"
-    )
-
-if player_hits == 12:
-
-    st.error(
-        "💀 Defeat! The computer sank your fleet!"
-)
+                    st.rerun()
