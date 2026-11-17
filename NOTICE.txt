@@ -1,0 +1,2 @@
+# This repository intentionally contains no junk/error files.
+# The stray files were removed from the working tree in the previous cleanup step.
