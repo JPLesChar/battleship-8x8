@@ -129,6 +129,13 @@ st.markdown(
         font-size: 2rem;
         line-height: 1;
     }}
+    .grid-label {{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 3.6rem;
+        font-weight: 700;
+    }}
     .fleet-legend {{
         display: flex;
         flex-wrap: wrap;
@@ -194,13 +201,19 @@ with left_board:
         unsafe_allow_html=True,
     )
     header = st.columns(9)
-    header[0].write("")
+    header[0].markdown('<div class="grid-label"></div>', unsafe_allow_html=True)
     for i, letter in enumerate(LETTERS):
-        header[i + 1].write(f"**{letter}**")
+        header[i + 1].markdown(
+            f'<div class="grid-label">{letter}</div>',
+            unsafe_allow_html=True,
+        )
 
     for row in range(8):
         cols = st.columns(9)
-        cols[0].write(f"**{row + 1}**")
+        cols[0].markdown(
+            f'<div class="grid-label">{row + 1}</div>',
+            unsafe_allow_html=True,
+        )
 
         for col in range(8):
             coord = (row, col)
@@ -224,6 +237,7 @@ with left_board:
                 symbol,
                 key=f"player_{row}_{col}",
                 disabled=(st.session_state.ship_index >= len(SHIP_NAMES) or st.session_state.game_over),
+                use_container_width=True,
             ):
                 if st.session_state.ship_index < len(SHIP_NAMES):
                     ship_length = SHIP_LENGTHS[st.session_state.ship_index]
@@ -254,13 +268,19 @@ with right_board:
     st.subheader("🎯 Enemy Waters")
 
     header = st.columns(9)
-    header[0].write("")
+    header[0].markdown('<div class="grid-label"></div>', unsafe_allow_html=True)
     for i, letter in enumerate(LETTERS):
-        header[i + 1].write(f"**{letter}**")
+        header[i + 1].markdown(
+            f'<div class="grid-label">{letter}</div>',
+            unsafe_allow_html=True,
+        )
 
     for row in range(8):
         cols = st.columns(9)
-        cols[0].write(f"**{row + 1}**")
+        cols[0].markdown(
+            f'<div class="grid-label">{row + 1}</div>',
+            unsafe_allow_html=True,
+        )
 
         for col in range(8):
             coord = (row, col)
@@ -274,6 +294,7 @@ with right_board:
                 symbol,
                 key=f"enemy_{row}_{col}",
                 disabled=(st.session_state.ship_index < len(SHIP_NAMES) or st.session_state.game_over),
+                use_container_width=True,
             ):
                 if coord not in st.session_state.player_shots:
                     if coord in st.session_state.enemy_ships:
