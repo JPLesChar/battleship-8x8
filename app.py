@@ -85,7 +85,6 @@ if st.button("🔄 New Game"):
     st.rerun()
 
 st.title("🚢 Battleship Classic 8x8")
-st.caption("Coordinates use a letter for the column and a number for the row (for example, A1). Hover over any square to see its coordinate.")
 orientation = st.radio("Orientation", ["Horizontal", "Vertical"], key="orientation")
 
 if st.session_state.ship_index < len(SHIP_NAMES):
@@ -119,13 +118,13 @@ with left_board:
     st.subheader("🚢 Your Fleet")
 
     header = st.columns(9)
-    header[0].markdown("**↘**")
+    header[0].write("")
     for i, letter in enumerate(LETTERS):
-        header[i + 1].markdown(f"**{letter}**")
+        header[i + 1].write(f"**{letter}**")
 
     for row in range(8):
         cols = st.columns(9)
-        cols[0].markdown(f"**{row + 1}**")
+        cols[0].write(f"**{row + 1}**")
 
         for col in range(8):
             coord = (row, col)
@@ -143,7 +142,6 @@ with left_board:
             if cols[col + 1].button(
                 symbol,
                 key=f"player_{row}_{col}",
-                help=f"{LETTERS[col]}{row + 1}",
                 disabled=(st.session_state.ship_index >= len(SHIP_NAMES) or st.session_state.game_over),
             ):
                 if st.session_state.ship_index < len(SHIP_NAMES):
@@ -175,13 +173,13 @@ with right_board:
     st.subheader("🎯 Enemy Waters")
 
     header = st.columns(9)
-    header[0].markdown("**↘**")
+    header[0].write("")
     for i, letter in enumerate(LETTERS):
-        header[i + 1].markdown(f"**{letter}**")
+        header[i + 1].write(f"**{letter}**")
 
     for row in range(8):
         cols = st.columns(9)
-        cols[0].markdown(f"**{row + 1}**")
+        cols[0].write(f"**{row + 1}**")
 
         for col in range(8):
             coord = (row, col)
@@ -194,7 +192,6 @@ with right_board:
             if cols[col + 1].button(
                 symbol,
                 key=f"enemy_{row}_{col}",
-                help=f"{LETTERS[col]}{row + 1}",
                 disabled=(st.session_state.ship_index < len(SHIP_NAMES) or st.session_state.game_over),
             ):
                 if coord not in st.session_state.player_shots:
