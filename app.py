@@ -166,11 +166,11 @@ st.markdown(
         }}
         div[class*="st-key-player_"] button,
         div[class*="st-key-enemy_"] button {{
-            min-height: 2.4rem;
-            font-size: 1.25rem;
+            min-height: 1.75rem;
+            font-size: 1rem;
         }}
         .grid-label {{
-            height: 2.4rem;
+            height: 1.75rem;
         }}
     }}
     {"".join(ship_cell_styles)}
