@@ -5,7 +5,23 @@ st.set_page_config(page_title="Battleship 8x8", layout="wide")
 
 SHIP_NAMES = ["Battleship", "Cruiser", "Submarine", "Destroyer"]
 SHIP_LENGTHS = [4, 3, 3, 2]
+SHIP_ICONS = ["🛳️", "🚢", "⚓", "🚤"]
+SHIP_COLORS = [
+    ("#1e3a8a", "#93c5fd"),
+    ("#0f766e", "#5eead4"),
+    ("#7e22ce", "#d8b4fe"),
+    ("#c2410c", "#fdba74"),
+]
 LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"]
+
+
+def ship_index_at(coord, occupied):
+    offset = 0
+    for index, length in enumerate(SHIP_LENGTHS):
+        if coord in occupied[offset : offset + length]:
+            return index
+        offset += length
+    return None
 
 
 def can_place_ship(ship, occupied):
@@ -79,6 +95,63 @@ if "available_shots" not in st.session_state:
 if "game_over" not in st.session_state:
     st.session_state.game_over = False
 
+ship_cell_styles = []
+for coord in st.session_state.player_ships:
+    ship_index = ship_index_at(coord, st.session_state.player_ships)
+    row, col = coord
+    fill, border = SHIP_COLORS[ship_index]
+    ship_cell_styles.append(
+        f"""
+        .st-key-player_{row}_{col} button {{
+            background: {fill} !important;
+            border: 2px solid {border} !important;
+            color: white !important;
+        }}
+        .st-key-player_{row}_{col} button:hover {{
+            background: {fill} !important;
+            border-color: white !important;
+        }}
+        """
+    )
+
+legend_items = "".join(
+    f'<span><i style="background:{fill};border-color:{border}"></i>'
+    f"{icon} {name}</span>"
+    for name, icon, (fill, border) in zip(SHIP_NAMES, SHIP_ICONS, SHIP_COLORS)
+)
+st.markdown(
+    f"""
+    <style>
+    div[class*="st-key-player_"] button,
+    div[class*="st-key-enemy_"] button {{
+        min-height: 3.6rem;
+        padding: 0;
+        font-size: 2rem;
+        line-height: 1;
+    }}
+    .fleet-legend {{
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.8rem;
+        margin-bottom: 0.75rem;
+    }}
+    .fleet-legend span {{
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-weight: 600;
+    }}
+    .fleet-legend i {{
+        width: 0.8rem;
+        height: 0.8rem;
+        border: 2px solid;
+        border-radius: 0.2rem;
+    }}
+    {"".join(ship_cell_styles)}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 if st.button("🔄 New Game"):
     reset_game()
@@ -116,7 +189,10 @@ left_board, right_board = st.columns(2)
 
 with left_board:
     st.subheader("🚢 Your Fleet")
-
+    st.markdown(
+        f'<div class="fleet-legend">{legend_items}</div>',
+        unsafe_allow_html=True,
+    )
     header = st.columns(9)
     header[0].write("")
     for i, letter in enumerate(LETTERS):
@@ -128,14 +204,19 @@ with left_board:
 
         for col in range(8):
             coord = (row, col)
+            ship_index = ship_index_at(coord, st.session_state.player_ships)
 
             if coord in st.session_state.computer_shots:
                 if coord in st.session_state.player_ships:
-                    symbol = "💥" if st.session_state.computer_shots[coord] == "hit" else "🚢"
+                    symbol = (
+                        "💥"
+                        if st.session_state.computer_shots[coord] == "hit"
+                        else SHIP_ICONS[ship_index]
+                    )
                 else:
                     symbol = "❌"
-            elif coord in st.session_state.player_ships:
-                symbol = "🚢"
+            elif ship_index is not None:
+                symbol = SHIP_ICONS[ship_index]
             else:
                 symbol = "⬜"
 
